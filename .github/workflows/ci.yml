@@ -1,6 +1,6 @@
 name: ci
 
-# Plain CI. Note the unpinned third-party action below: `actions/setup-node@v4`
+# Plain CI. Note the unpinned third-party action below: `actions/setup-go@v5`
 # is a mutable tag ref, not a commit SHA. Station 2 recon fodder: a tag can be
 # repointed at any time, so an unpinned action is a supply-chain input.
 on:
@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4   # UNPINNED: mutable tag, not a SHA (recon fodder)
+      - uses: actions/setup-go@v5   # UNPINNED: mutable tag, not a SHA (recon fodder)
         with:
-          node-version: '20'
-      - run: npm ci
-      - run: npm test
+          go-version: '1.24'
+      - run: go build ./...
+      - run: go test ./...

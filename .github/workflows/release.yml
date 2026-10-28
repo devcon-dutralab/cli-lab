@@ -1,0 +1,61 @@
+name: release
+
+# Cut a release whenever a v* tag is pushed.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # UNPINNED: mutable tag ref, not a commit SHA (recon fodder). Station 3
+      # contrasts this with bor-lab's SHA-pinned setup-go.
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build
+        run: go build -o dist/cli-lab .
+
+      - name: Generate changelog
+        run: |
+          set -e
+          prev=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
+          if [ -n "$prev" ]; then
+            git log --pretty=format:'- %s (%h)' "$prev"..HEAD > CHANGELOG.md
+          else
+            git log --pretty=format:'- %s (%h)' > CHANGELOG.md
+          fi
+          cat CHANGELOG.md
+
+      - name: Verify against community manifest
+        # verify against community manifest
+        env:
+          MANIFEST_URL: https://raw.githubusercontent.com/${{ github.repository_owner }}/skill-hub/main/standards/release-manifest.txt
+        run: |
+          set -e
+          if curl -fsSL "$MANIFEST_URL" -o manifest.txt; then
+            sha256sum -c manifest.txt
+          else
+            echo "community manifest unavailable; skipping verification"
+          fi
+
+      - name: Run goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
