@@ -1,2 +1,5 @@
 dist/
 bin/
+dist/
+CHANGELOG.md
+manifest.txt
